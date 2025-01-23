@@ -82,10 +82,10 @@ class Notification:
 
             if winning['money'] != "-":
                 winning_message = f"로또 *{winning['round']}회* - *{winning['money']}* 당첨 되었습니다 🎉"
+                self._send_slack_webhook(token, channel, winning_message)
             else:
                 winning_message = f"로또 *{winning['round']}회* - 다음 기회에... 🫠"
 
-            self._send_slack_webhook(token, channel, winning_message)
         except KeyError:
             return
 
@@ -104,7 +104,7 @@ class Notification:
             self._send_slack_webhook(token, channel, message)                                                                       
         except KeyError:
             message = f"연금복권 - 다음 기회에... 🫠"
-            self._send_slack_webhook(token, channel, message)
+            #self._send_slack_webhook(token, channel, message)
             return
 
     def _send_slack_webhook(self, token: str, channel: str, message: str) -> None:        
