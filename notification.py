@@ -85,7 +85,7 @@ class Notification:
             else:
                 winning_message = f"로또 *{winning['round']}회* - 다음 기회에... 🫠"
 
-            self._send_slack_webhook(token, channel, f"```ini\n{formatted_results}```\n{winning_message}")
+            self._send_slack_webhook(token, channel, winning_message)
         except KeyError:
             return
 
