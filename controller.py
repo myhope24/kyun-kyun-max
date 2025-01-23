@@ -6,7 +6,7 @@ import auth
 import lotto645
 import win720
 import notification
-
+import time
 
 def buy_lotto645(authCtrl: auth.AuthController, cnt: int, mode: str):
     lotto = lotto645.Lotto645()
@@ -59,6 +59,8 @@ def check():
     response = check_winning_lotto645(globalAuthCtrl)
     send_message(0, 0, response=response, token=slack_bot_token, channel=slack_channel)
 
+    time.sleep(10)
+    
     response = check_winning_win720(globalAuthCtrl)
     send_message(0, 1, response=response, token=slack_bot_token, channel=slack_channel)
 
@@ -80,6 +82,8 @@ def buy():
     response = buy_lotto645(globalAuthCtrl, count, mode) 
     send_message(1, 0, response=response, token=slack_bot_token, channel=slack_channel)
 
+    time.sleep(10)
+    
     response = buy_win720(globalAuthCtrl, username) 
     send_message(1, 1, response=response, token=slack_bot_token, channel=slack_channel)
 
