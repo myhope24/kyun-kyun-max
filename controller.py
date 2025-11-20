@@ -59,8 +59,8 @@ def check():
     response = check_winning_lotto645(globalAuthCtrl)
     send_message(0, 0, response=response, token=slack_bot_token, channel=slack_channel)
 
-    response = check_winning_win720(globalAuthCtrl)
-    send_message(0, 1, response=response, token=slack_bot_token, channel=slack_channel)
+    #response = check_winning_win720(globalAuthCtrl)
+    #send_message(0, 1, response=response, token=slack_bot_token, channel=slack_channel)
 
 def buy(): 
     
@@ -80,8 +80,8 @@ def buy():
     response = buy_lotto645(globalAuthCtrl, count, mode) 
     send_message(1, 0, response=response, token=slack_bot_token, channel=slack_channel)
 
-    response = buy_win720(globalAuthCtrl) 
-    send_message(1, 1, response=response, token=slack_bot_token, channel=slack_channel)
+    #response = buy_win720(globalAuthCtrl) 
+    #send_message(1, 1, response=response, token=slack_bot_token, channel=slack_channel)
 
 def run():
     if len(sys.argv) < 2:
