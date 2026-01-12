@@ -30,7 +30,7 @@ class Notification:
         
         return lotto_number
 
-     def send_win720_buying_message(self, body: dict, token: str, channel: str) -> None:
+    def send_win720_buying_message(self, body: dict, token: str, channel: str) -> None:
         assert type(token) == str
         assert type(channel) == str
         
