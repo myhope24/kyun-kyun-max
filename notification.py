@@ -130,10 +130,11 @@ class Notification:
 
             if is_winning:
                 message = f"{message_content}연금복권 *{winning['round']}회* - *{winning['money']}* 당첨 되었습니다 🎉"
+                self._send_slack_webhook(token, channel, message)
             #else:
             #     message = f"{message_content}연금복권 *{winning['round']}회* - 다음 기회에... 🫠"
 
-            self._send_slack_webhook(token, channel, message)
+        
         except KeyError:
             message = "연금복권 - 다음 기회에... 🫠"
             #self._send_slack_webhook(token, channel, message)
