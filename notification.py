@@ -2,18 +2,19 @@ import requests
 import re
 
 class Notification:
-    def send_lotto_buying_message(self, body: dict, webhook_url: str) -> None:
-        assert type(webhook_url) == str
+    def send_lotto_buying_message(self, body: dict, token: str, channel: str) -> None:
+        assert type(token) == str
+        assert type(channel) == str
 
         result = body.get("result", {})
         if result.get("resultMsg", "FAILURE").upper() != "SUCCESS":  
             message = f"로또 구매 실패 (`{result.get('resultMsg', 'Unknown Error')}`) 남은잔액 : {body.get('balance', '확인불가')}"
-            self._send_discord_webhook(webhook_url, message)
+            self._send_slack_webhook(token, channel, message)
             return
 
         lotto_number_str = self.make_lotto_number_message(result["arrGameChoiceNum"])
         message = f"{result['buyRound']}회 로또 구매 완료 :moneybag: 남은잔액 : {body.get('balance', '확인불가')}\n```{lotto_number_str}```"
-        self._send_discord_webhook(webhook_url, message)
+        self._send_slack_webhook(token, channel, message)
 
     def make_lotto_number_message(self, lotto_number: list) -> str:
         assert type(lotto_number) == list
@@ -29,11 +30,13 @@ class Notification:
         
         return lotto_number
 
-    def send_win720_buying_message(self, body: dict, webhook_url: str) -> None:
+     def send_win720_buying_message(self, body: dict, token: str, channel: str) -> None:
+        assert type(token) == str
+        assert type(channel) == str
         
         if body.get("resultCode") != '100':  
             message = f"연금복권 구매 실패 (`{body.get('resultMsg', 'Unknown Error')}`) 남은잔액 : {body.get('balance', '확인불가')}"
-            self._send_discord_webhook(webhook_url, message)
+            self._send_slack_webhook(token, channel, message)
             return       
 
         win720_round = body.get("round", "?")
@@ -49,7 +52,7 @@ class Notification:
             win720_number_str = self.make_win720_number_message(body.get("saleTicket"))
 
         message = f"{win720_round}회 연금복권 구매 완료 :moneybag: 남은잔액 : {body.get('balance', '확인불가')}\n```\n{win720_number_str}```"
-        self._send_discord_webhook(webhook_url, message)
+        self._send_slack_webhook(token, channel, message)
 
     def make_win720_number_message(self, win720_number: str) -> str:
         formatted_numbers = []
@@ -58,9 +61,10 @@ class Notification:
             formatted_numbers.append(formatted_number)
         return "\n".join(formatted_numbers)
 
-    def send_lotto_winning_message(self, winning: dict, webhook_url: str) -> None: 
+    def send_lotto_winning_message(self, winning: dict, token: str, channel: str) -> None:
+        assert type(token) == str
+        assert type(channel) == str
         assert type(winning) == dict
-        assert type(webhook_url) == str
 
         try: 
             round = winning["round"]
@@ -96,18 +100,18 @@ class Notification:
             
             if is_winning:
                 winning_message = f"로또 *{winning['round']}회* - *{winning['money']}* 당첨 되었습니다 🎉"
-            else:
-                winning_message = f"로또 *{winning['round']}회* - 다음 기회에... 🫠"
+                self._send_slack_webhook(token, channel, winning_message)
+            #else:
+            #    winning_message = f"로또 *{winning['round']}회* - 다음 기회에... 🫠"
 
-            self._send_discord_webhook(webhook_url, f"```ini\n{formatted_results}```\n{winning_message}")
         except KeyError:
             message = "로또 - 다음 기회에... 🫠"
-            self._send_discord_webhook(webhook_url, message)
             return
 
-    def send_win720_winning_message(self, winning: dict, webhook_url: str) -> None: 
+    def send_win720_winning_message(self, winning: dict, token: str, channel: str) -> None:
+        assert type(token) == str
+        assert type(channel) == str
         assert type(winning) == dict
-        assert type(webhook_url) == str
 
         try:
             if "win720_details" in winning and winning["win720_details"]:
@@ -126,13 +130,14 @@ class Notification:
 
             if is_winning:
                 message = f"{message_content}연금복권 *{winning['round']}회* - *{winning['money']}* 당첨 되었습니다 🎉"
-            else:
-                 message = f"{message_content}연금복권 *{winning['round']}회* - 다음 기회에... 🫠"
+            #else:
+            #     message = f"{message_content}연금복권 *{winning['round']}회* - 다음 기회에... 🫠"
 
-            self._send_discord_webhook(webhook_url, message)
+            self._send_slack_webhook(token, channel, message)
         except KeyError:
             message = "연금복권 - 다음 기회에... 🫠"
-            self._send_discord_webhook(webhook_url, message)
+            #self._send_slack_webhook(token, channel, message)
+            return
 
     def _send_slack_webhook(self, token: str, channel: str, message: str) -> None:        
         payload = { "text": message, "channel": channel }
