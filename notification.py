@@ -1,18 +1,19 @@
 import requests
+import re
 
-                    
-class Notification: 
-
+class Notification:
     def send_lotto_buying_message(self, body: dict, token: str, channel: str) -> None:
         assert type(token) == str
         assert type(channel) == str
-      
+
         result = body.get("result", {})
         if result.get("resultMsg", "FAILURE").upper() != "SUCCESS":  
+            message = f"로또 구매 실패 (`{result.get('resultMsg', 'Unknown Error')}`) 남은잔액 : {body.get('balance', '확인불가')}"
+            self._send_slack_webhook(token, channel, message)
             return
 
         lotto_number_str = self.make_lotto_number_message(result["arrGameChoiceNum"])
-        message = f"{result['buyRound']}회 로또 구매 완료 :moneybag: 남은잔액 : {body['balance']}\n```{lotto_number_str}```"
+        message = f"{result['buyRound']}회 로또 구매 완료 :moneybag: 남은잔액 : {body.get('balance', '확인불가')}\n```{lotto_number_str}```"
         self._send_slack_webhook(token, channel, message)
 
     def make_lotto_number_message(self, lotto_number: list) -> str:
@@ -34,40 +35,109 @@ class Notification:
         assert type(channel) == str
         
         if body.get("resultCode") != '100':  
+            message = f"연금복권 구매 실패 (`{body.get('resultMsg', 'Unknown Error')}`) 남은잔액 : {body.get('balance', '확인불가')}"
+            self._send_slack_webhook(token, channel, message)
             return       
 
-        win720_round = body.get("resultMsg").split("|")[3]
+        win720_round = body.get("round", "?")
+        if win720_round == "?":
+            try:
+                 win720_round = body.get("saleTicket", "").split("|")[-2]
+            except (IndexError, AttributeError, TypeError):
+                 win720_round = "?"
 
-        win720_number_str = self.make_win720_number_message(body.get("saleTicket"))
-        message = f"{win720_round}회 연금복권 구매 완료 :moneybag: 남은잔액 : {body['balance']}\n```{win720_number_str}```"
+        if not body.get("saleTicket"):
+            win720_number_str = "번호 정보 없음"
+        else:
+            win720_number_str = self.make_win720_number_message(body.get("saleTicket"))
+
+        message = f"{win720_round}회 연금복권 구매 완료 :moneybag: 남은잔액 : {body.get('balance', '확인불가')}\n```\n{win720_number_str}```"
+        self._send_slack_webhook(token, channel, message)
 
     def make_win720_number_message(self, win720_number: str) -> str:
-        return "\n".join(win720_number.split(","))
+        formatted_numbers = []
+        for number in win720_number.split(","):
+            formatted_number = f"{number[0]}조 " + " ".join(number[1:])
+            formatted_numbers.append(formatted_number)
+        return "\n".join(formatted_numbers)
 
-    def send_lotto_winning_message(self, winning: dict, token: str, channel: str) -> None: 
-        assert type(winning) == dict
+    def send_lotto_winning_message(self, winning: dict, token: str, channel: str) -> None:
         assert type(token) == str
         assert type(channel) == str
+        assert type(winning) == dict
 
         try: 
             round = winning["round"]
             money = winning["money"]
-            message = f"로또 *{winning['round']}회* - *{winning['money']}* 당첨 되었습니다 :tada:"
-            self._send_slack_webhook(token, channel, message)
+
+            if winning["lotto_details"]:
+                max_label_status_length = max(len(f"{line['label']} {line['status']}") for line in winning["lotto_details"])
+
+                formatted_lines = []
+                for line in winning["lotto_details"]:
+                    line_label_status = f"{line['label']} {line['status']}".ljust(max_label_status_length)
+                    line_result = line["result"]
+    
+                    formatted_nums = []
+                    for num in line_result:
+                        raw_num = re.search(r'\d+', num).group()
+                        formatted_num = f"{int(raw_num):02d}"
+                        if '✨' in num:
+                            formatted_nums.append(f"[{formatted_num}]")
+                        else:
+                            formatted_nums.append(f" {formatted_num} ")
+    
+                    formatted_nums = [f"{num:>6}" for num in formatted_nums]
+    
+                    formatted_line = f"{line_label_status} " + " ".join(formatted_nums)
+                    formatted_lines.append(formatted_line)
+    
+                formatted_results = "\n".join(formatted_lines)
+            else:
+                formatted_results = "상세 정보를 불러오지 못했습니다."
+
+            is_winning = winning['money'] != "-" and winning['money'] != "0 원" and winning['money'] != "0"
+            
+            if is_winning:
+                winning_message = f"로또 *{winning['round']}회* - *{winning['money']}* 당첨 되었습니다 🎉"
+                self._send_slack_webhook(token, channel, winning_message)
+            #else:
+            #    winning_message = f"로또 *{winning['round']}회* - 다음 기회에... 🫠"
+
         except KeyError:
+            message = "로또 - 다음 기회에... 🫠"
             return
 
-    def send_win720_winning_message(self, winning: dict, token: str, channel: str) -> None: 
-        assert type(winning) == dict
+    def send_win720_winning_message(self, winning: dict, token: str, channel: str) -> None:
         assert type(token) == str
         assert type(channel) == str
+        assert type(winning) == dict
 
-        try: 
-            round = winning["round"]
-            money = winning["money"]
-            message = f"연금복권 *{winning['round']}회* - *{winning['money']}* 당첨 되었습니다 :tada:"
-            self._send_slack_webhook(token, channel, message)
+        try:
+            if "win720_details" in winning and winning["win720_details"]:
+                max_label_status_length = max(len(f"{line['label']} {line['status']}") for line in winning["win720_details"])
+                formatted_lines = []
+                for line in winning["win720_details"]:
+                    line_label_status = f"{line['label']} {line['status']}".ljust(max_label_status_length)
+                    formatted_lines.append(f"{line_label_status} {line['result']}")
+                
+                formatted_results = "\n".join(formatted_lines)
+                message_content = f"```ini\n{formatted_results}```\n"
+            else:
+                message_content = ""
+
+            is_winning = winning['money'] != "-" and winning['money'] != "0 원" and winning['money'] != "0"
+
+            if is_winning:
+                message = f"{message_content}연금복권 *{winning['round']}회* - *{winning['money']}* 당첨 되었습니다 🎉"
+                self._send_slack_webhook(token, channel, message)
+            #else:
+            #     message = f"{message_content}연금복권 *{winning['round']}회* - 다음 기회에... 🫠"
+
+        
         except KeyError:
+            message = "연금복권 - 다음 기회에... 🫠"
+            #self._send_slack_webhook(token, channel, message)
             return
 
     def _send_slack_webhook(self, token: str, channel: str, message: str) -> None:        
