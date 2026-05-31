@@ -1,7 +1,7 @@
 name: Buy Action
 on:
   schedule:
-    - cron: 0 10 * * 1 # every Monday on 07:00 PM (KST)
+    - cron: 0 11 * * 1 # every Monday on 08:00 PM (KST)
   workflow_dispatch:
 
 jobs:
